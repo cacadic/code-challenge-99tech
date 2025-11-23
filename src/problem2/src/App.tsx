@@ -1,237 +1,211 @@
-import { useState, useEffect, useMemo } from 'react'
-import './App.css'
+import { useState, useEffect } from "react";
+import type { Coin } from "./api/coinService";
+import { useCoinSwap } from "./hooks/useCoinSwap";
+import { useCoinDropdown } from "./hooks/useCoinDropdown";
+import { useSettings } from "./hooks/useSettings";
+import { useBalanceValidation } from "./hooks/useBalanceValidation";
+import { formatReceivedAmount } from "./utils/formatting";
+import { Header } from "./components/Header";
+import { CoinInput } from "./components/CoinInput";
+import { SwapButton } from "./components/SwapButton";
+import { TransferButton } from "./components/TransferButton";
+import { CoinDropdown } from "./components/CoinDropdown";
+import { GlobalStyles } from "./components/GlobalStyles";
+import { LoadingScreen } from "./components/LoadingScreen";
+import { SettingsModal } from "./components/SettingsModal";
+import { TransferModal } from "./components/TransferModal";
+import { ToastStack } from "./components/ToastStack";
+import { showToast } from "./utils/toast";
 
-interface Currency {
-  currency: string
-  price: number
-}
-
-interface FormErrors {
-  amount?: string
-  fromCurrency?: string
-  toCurrency?: string
-}
-
+/**
+ * App Component - Main component for the swap interface
+ *
+ * Architecture:
+ * - Custom Hooks: useCoinSwap, useCoinDropdown, useSettings, useBalanceValidation
+ * - Components: Header, CoinInput, SwapButton, etc. (UI)
+ * - Utils: formatting functions (business logic)
+ */
 function App() {
-  const [currencies, setCurrencies] = useState<Currency[]>([])
-  const [fromCurrency, setFromCurrency] = useState<string>('')
-  const [toCurrency, setToCurrency] = useState<string>('')
-  const [amount, setAmount] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(false)
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [submitMessage, setSubmitMessage] = useState<string>('')
+  const {
+    coins,
+    allCoins,
+    loading,
+    isSwapping,
+    payCoin,
+    receiveCoin,
+    amount,
+    setAmount,
+    setPayCoin,
+    setReceiveCoin,
+    receivedAmount,
+    conversionRate,
+    swapCoins,
+    refreshCoins,
+  } = useCoinSwap();
 
-  // Fetch currency prices on mount
+  const {
+    showList,
+    setShowList,
+    searchTerm,
+    setSearchTerm,
+    dropdownRef,
+    filteredCoins,
+    closeDropdown,
+  } = useCoinDropdown(coins, allCoins);
+
+  const {
+    settings,
+    setDecimalPlaces,
+    setTheme,
+    setShowUSDComparison,
+    showModal,
+    setShowModal,
+  } = useSettings();
+
+  const { isTransferDisabled, isZeroOrNegative } = useBalanceValidation({
+    payCoin,
+    amount,
+  });
+
+  const [showTransferModal, setShowTransferModal] = useState(false);
+
   useEffect(() => {
-    const fetchPrices = async () => {
-      try {
-        const response = await fetch('https://interview.switcheo.com/prices.json')
-        const data: Currency[] = await response.json()
-        
-        // Filter out currencies without prices and remove duplicates
-        const uniqueCurrencies = data.reduce((acc: Currency[], curr) => {
-          if (curr.price && !acc.find(c => c.currency === curr.currency)) {
-            acc.push(curr)
-          }
-          return acc
-        }, [])
-        
-        setCurrencies(uniqueCurrencies.sort((a, b) => a.currency.localeCompare(b.currency)))
-        
-        // Set default currencies
-        if (uniqueCurrencies.length >= 2) {
-          setFromCurrency(uniqueCurrencies[0].currency)
-          setToCurrency(uniqueCurrencies[1].currency)
-        }
-      } catch (error) {
-        console.error('Failed to fetch currencies:', error)
-      }
+    const themeClass = settings.theme === "dark" ? "dark" : "light";
+    const bgClass = settings.theme === "dark" ? "bg-gray-950" : "bg-gray-100";
+    document.body.className = `${themeClass} ${bgClass}`;
+  }, [settings.theme]);
+
+  const handleSelectCoin = (coin: Coin) => {
+    if (!payCoin || !receiveCoin) return;
+
+    if (showList === "pay") {
+      setPayCoin(coin);
+    } else if (showList === "receive") {
+      setReceiveCoin(coin);
     }
 
-    fetchPrices()
-  }, [])
+    closeDropdown();
+  };
 
-  // Calculate exchange rate and converted amount
-  const { exchangeRate, convertedAmount } = useMemo(() => {
-    if (!fromCurrency || !toCurrency || !amount) {
-      return { exchangeRate: 0, convertedAmount: 0 }
+  const handleSwap = async () => {
+    await swapCoins();
+  };
+
+  const handleTransferClick = () => {
+    if (isZeroOrNegative) {
+      showToast("Amount must be positive", "info");
+      return;
     }
 
-    const fromPrice = currencies.find(c => c.currency === fromCurrency)?.price || 0
-    const toPrice = currencies.find(c => c.currency === toCurrency)?.price || 0
-
-    if (fromPrice === 0 || toPrice === 0) {
-      return { exchangeRate: 0, convertedAmount: 0 }
+    if (isTransferDisabled) {
+      showToast("Insufficient Balance", "error");
+      return;
     }
 
-    const rate = fromPrice / toPrice
-    const converted = parseFloat(amount) * rate
+    setShowTransferModal(true);
+  };
 
-    return {
-      exchangeRate: rate,
-      convertedAmount: isNaN(converted) ? 0 : converted
-    }
-  }, [fromCurrency, toCurrency, amount, currencies])
+  const handleConfirmTransfer = async () => {
+    console.log("Transfer confirmed!");
+    showToast("Transfer successful!", "success");
+    await refreshCoins();
+  };
 
-  // Validate form
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {}
+  const formattedReceivedAmount = formatReceivedAmount(
+    receivedAmount,
+    settings.decimalPlaces
+  );
 
-    if (!amount || parseFloat(amount) <= 0) {
-      newErrors.amount = 'Please enter a valid amount greater than 0'
-    }
-
-    if (!fromCurrency) {
-      newErrors.fromCurrency = 'Please select a currency to swap from'
-    }
-
-    if (!toCurrency) {
-      newErrors.toCurrency = 'Please select a currency to swap to'
-    }
-
-    if (fromCurrency === toCurrency) {
-      newErrors.toCurrency = 'Cannot swap to the same currency'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  // Handle swap currencies
-  const handleSwap = () => {
-    const temp = fromCurrency
-    setFromCurrency(toCurrency)
-    setToCurrency(temp)
-  }
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) {
-      return
-    }
-
-    setLoading(true)
-    setSubmitMessage('')
-
-    // Simulate API call with timeout
-    setTimeout(() => {
-      setLoading(false)
-      setSubmitMessage(`Successfully swapped ${amount} ${fromCurrency} to ${convertedAmount.toFixed(6)} ${toCurrency}!`)
-      setAmount('')
-    }, 1500)
+  if (loading || !payCoin || !receiveCoin) {
+    return <LoadingScreen theme={settings.theme} />;
   }
 
   return (
-    <div className="app-container">
-      <div className="card">
-        <h1 className="title">Currency Swap</h1>
-        <p className="subtitle">Exchange your crypto assets instantly</p>
+    <>
+      <GlobalStyles />
+      <section
+        className={`flex flex-col items-center justify-center p-3 sm:p-5 rounded-xl border w-full max-w-[320px] xs:max-w-sm sm:max-w-md mx-2 sm:mx-auto relative overflow-hidden transition-all duration-500 ${
+          settings.theme === "dark"
+            ? "bg-[#151723] border-gray-400/10"
+            : "bg-gray-50 border-gray-200 shadow-lg"
+        }`}
+      >
+        <Header
+          onSettingsClick={() => setShowModal(true)}
+          theme={settings.theme}
+        />
 
-        <form onSubmit={handleSubmit} className="form">
-          {/* From Currency Section */}
-          <div className="input-group">
-            <label className="label">From</label>
-            <div className="input-row">
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value)
-                  setErrors({ ...errors, amount: undefined })
-                }}
-                placeholder="0.00"
-                className="amount-input"
-                step="any"
-                min="0"
-              />
-              <select
-                value={fromCurrency}
-                onChange={(e) => {
-                  setFromCurrency(e.target.value)
-                  setErrors({ ...errors, fromCurrency: undefined })
-                }}
-                className="currency-select"
-              >
-                {currencies.map((curr) => (
-                  <option key={curr.currency} value={curr.currency}>
-                    {curr.currency}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {errors.amount && <span className="error">{errors.amount}</span>}
-            {errors.fromCurrency && <span className="error">{errors.fromCurrency}</span>}
-          </div>
+        <CoinInput
+          label="You pay"
+          amount={amount}
+          coin={isSwapping ? null : payCoin}
+          showBalance={true}
+          showUSDComparison={settings.showUSDComparison}
+          animate={false}
+          onAmountChange={setAmount}
+          onValidationError={(message) => showToast(message, "info")}
+          theme={settings.theme}
+          onCoinClick={() => setShowList(showList === "pay" ? null : "pay")}
+        />
 
-          {/* Swap Button */}
-          <div className="swap-button-container">
-            <button
-              type="button"
-              onClick={handleSwap}
-              className="swap-button"
-              title="Swap currencies"
-            >
-              ⇅
-            </button>
-          </div>
+        <SwapButton onSwap={handleSwap} theme={settings.theme} />
 
-          {/* To Currency Section */}
-          <div className="input-group">
-            <label className="label">To</label>
-            <div className="input-row">
-              <input
-                type="text"
-                value={convertedAmount.toFixed(6)}
-                readOnly
-                placeholder="0.00"
-                className="amount-input readonly"
-              />
-              <select
-                value={toCurrency}
-                onChange={(e) => {
-                  setToCurrency(e.target.value)
-                  setErrors({ ...errors, toCurrency: undefined })
-                }}
-                className="currency-select"
-              >
-                {currencies.map((curr) => (
-                  <option key={curr.currency} value={curr.currency}>
-                    {curr.currency}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {errors.toCurrency && <span className="error">{errors.toCurrency}</span>}
-          </div>
+        <CoinInput
+          label="You receive"
+          amount=""
+          coin={isSwapping ? null : receiveCoin}
+          receivedAmount={formattedReceivedAmount}
+          conversionRate={conversionRate}
+          receiveCoin={payCoin}
+          showBalance={true}
+          readOnly={true}
+          animate={false}
+          theme={settings.theme}
+          onCoinClick={() =>
+            setShowList(showList === "receive" ? null : "receive")
+          }
+        />
 
-          {/* Exchange Rate Display */}
-          {exchangeRate > 0 && (
-            <div className="exchange-rate">
-              1 {fromCurrency} = {exchangeRate.toFixed(6)} {toCurrency}
-            </div>
-          )}
+        <TransferButton
+          disabled={isTransferDisabled}
+          onClick={handleTransferClick}
+        />
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="submit-button"
-            disabled={loading}
-          >
-            {loading ? 'Processing...' : 'Swap Now'}
-          </button>
+        <CoinDropdown
+          showList={showList}
+          payCoin={payCoin}
+          receiveCoin={receiveCoin}
+          searchTerm={searchTerm}
+          filteredCoins={filteredCoins}
+          dropdownRef={dropdownRef}
+          onSearchChange={setSearchTerm}
+          onClose={closeDropdown}
+          onSelectCoin={handleSelectCoin}
+          theme={settings.theme}
+        />
 
-          {/* Success Message */}
-          {submitMessage && (
-            <div className="success-message">
-              {submitMessage}
-            </div>
-          )}
-        </form>
-      </div>
-    </div>
-  )
+        <SettingsModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          decimalPlaces={settings.decimalPlaces}
+          theme={settings.theme}
+          showUSDComparison={settings.showUSDComparison}
+          onDecimalPlacesChange={setDecimalPlaces}
+          onThemeChange={setTheme}
+          onToggleUSDComparison={setShowUSDComparison}
+        />
+
+        <TransferModal
+          isOpen={showTransferModal}
+          onClose={() => setShowTransferModal(false)}
+          onConfirm={handleConfirmTransfer}
+          theme={settings.theme}
+        />
+
+        <ToastStack />
+      </section>
+    </>
+  );
 }
 
-export default App
+export default App;
