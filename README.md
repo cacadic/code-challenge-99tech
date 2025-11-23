@@ -17,11 +17,13 @@ This repository contains my solutions to the 99Tech code challenge, demonstratin
 ## Problem 1: Three Ways to Sum to N
 
 ### Overview
+
 Implement three unique methods to calculate the sum from 1 to n, with comprehensive time and space complexity analysis.
 
 ### Solutions
 
 #### Method A: Iterative Approach (While Loop)
+
 ```javascript
 var sum_to_n_a = function(n) {
     let sum = 0;
@@ -35,14 +37,17 @@ var sum_to_n_a = function(n) {
 ```
 
 **Time Complexity:** O(n)
+
 - Iterates through n numbers exactly once
 - Each iteration performs constant time operations
 
 **Space Complexity:** O(1)
+
 - Uses only fixed amount of extra space
 - No recursive calls or scaling data structures
 
 #### Method B: Mathematical Formula (Gauss's Formula)
+
 ```javascript
 var sum_to_n_b = function(n) {
     return (n * (n + 1)) / 2;
@@ -50,14 +55,17 @@ var sum_to_n_b = function(n) {
 ```
 
 **Time Complexity:** O(1)
+
 - Uses arithmetic series formula: sum = n × (n + 1) / 2
 - Only 3 arithmetic operations regardless of n
 - **MOST EFFICIENT APPROACH**
 
 **Space Complexity:** O(1)
+
 - No extra space needed
 
 **Mathematical Proof:**
+
 - Sum = 1 + 2 + 3 + ... + n
 - Writing forward and backward:
   - S = 1 + 2 + 3 + ... + n
@@ -66,6 +74,7 @@ var sum_to_n_b = function(n) {
 - Therefore: 2S = n(n+1), so S = n(n+1)/2
 
 #### Method C: Recursive Approach
+
 ```javascript
 var sum_to_n_c = function(n) {
     if (n <= 0) return 0;
@@ -74,16 +83,19 @@ var sum_to_n_c = function(n) {
 ```
 
 **Time Complexity:** O(n)
+
 - Makes n recursive calls
 - Each call performs constant time work
 
 **Space Complexity:** O(n)
+
 - Each recursive call adds a frame to the call stack
 - Maximum call stack depth is n
 - **WORSE than iterative due to stack overhead**
 - Risk of stack overflow for very large n
 
 ### Running Problem 1
+
 ```bash
 cd src/problem1
 node sum_to_n.js
@@ -93,12 +105,16 @@ node sum_to_n.js
 
 ## Problem 2: Currency Swap Form
 
+**Live Demo**: [https://99tech-challenge.linhpham.net/](https://99tech-challenge.linhpham.net/)
+
 ### Overview
+
 A fully functional, responsive currency swap interface built with React, TypeScript, Vite, and Tailwind CSS v4. Features real-time exchange rate calculation, comprehensive settings management, coin icons from GitHub, input validation, and a polished UI that works seamlessly on devices as small as 320px. The project structure matches the reference solution exactly with proper separation of concerns.
 
 ### Key Features
 
 ✅ **Settings Management**
+
 - Decimal places selector (2, 4, 6, 8, 10 options)
 - Theme toggle (Dark/Light mode)
 - USD comparison toggle
@@ -106,18 +122,21 @@ A fully functional, responsive currency swap interface built with React, TypeScr
 - Modal interface with intuitive controls
 
 ✅ **Coin Icons**
+
 - Fetches coin icons from GitHub's Switcheo token-icons repository
 - Handles special cases for staked tokens (stETH, stATOM, etc.)
 - Displays icons in coin selector buttons and dropdown list
 - Professional visual presentation
 
 ✅ **Real-time Exchange Rate Calculation**
+
 - Fetches live cryptocurrency prices from Switcheo API
 - Automatic conversion rate display
 - Instant calculation as user types
 - Configurable decimal places for display
 
 ✅ **Comprehensive Input Validation**
+
 - Amount must be positive and greater than 0
 - Balance validation to prevent overdraft
 - Cannot swap to the same currency
@@ -125,12 +144,14 @@ A fully functional, responsive currency swap interface built with React, TypeScr
 - Transfer button disabled when invalid
 
 ✅ **Responsive Design**
+
 - Fully responsive from 320px to desktop
 - Mobile-first approach
 - Smooth animations and transitions
 - Dark theme with professional styling
 
 ✅ **User Experience**
+
 - Swap button to quickly reverse currencies
 - Coin dropdown with search functionality
 - Loading state during data fetch
@@ -139,6 +160,7 @@ A fully functional, responsive currency swap interface built with React, TypeScr
 - Clean, intuitive interface
 
 ✅ **Performance Optimizations**
+
 - Custom hooks for separation of concerns
 - Memoized calculations for performance
 - Efficient state management
@@ -192,6 +214,7 @@ src/problem2/
 ### Technical Implementation
 
 **Stack:**
+
 - React 19 with TypeScript
 - Vite for build tooling
 - Tailwind CSS v4 with @tailwindcss/vite plugin
@@ -199,6 +222,7 @@ src/problem2/
 - GitHub Switcheo token-icons for coin icons
 
 **Architecture:**
+
 - Custom hooks for separation of concerns (useSettings, useCoinSwap, useCoinDropdown, useBalanceValidation)
 - Reusable component library
 - API service layer for data fetching
@@ -228,6 +252,7 @@ npm run preview
 ## Problem 3: React Code Optimization
 
 ### Overview
+
 Comprehensive analysis and refactoring of a React component with multiple performance issues, anti-patterns, and bugs. This solution demonstrates deep understanding of React fundamentals, particularly regarding `useEffect` and `useMemo` dependencies with objects and arrays.
 
 ### Critical Issues Fixed
@@ -260,6 +285,7 @@ const MyComponent = () => {
 ```
 
 **Why This is Wrong:**
+
 - `config` is a new object on every render
 - Even with same values, it's a different reference
 - React sees it as "changed" every time
@@ -268,11 +294,13 @@ const MyComponent = () => {
 #### Correct Solutions
 
 **Option 1: Memoize the Object**
+
 ```typescript
 const config = useMemo(() => ({ theme: 'dark' }), []);
 ```
 
 **Option 2: Use Primitive Dependencies**
+
 ```typescript
 const theme = 'dark';
 useEffect(() => {
@@ -281,6 +309,7 @@ useEffect(() => {
 ```
 
 **Option 3: Move Outside Component**
+
 ```typescript
 const CONFIG = { theme: 'dark' }; // ✅ Stable reference
 const MyComponent = () => {
@@ -293,12 +322,14 @@ const MyComponent = () => {
 ### Performance Impact
 
 **Before:**
+
 - Filter and sort: O(n log n) on EVERY render
 - getPriority called: ~2n times per render
 - Rows recreated on every parent re-render
 - Unnecessary recalculation when prices change
 
 **After:**
+
 - Filter and sort: O(n log n) only when balances change
 - getPriority: Stable function reference
 - Rows memoized - only recreate when data changes
@@ -358,18 +389,21 @@ cd ../problem3
 ## Key Strengths of This Solution
 
 ### 1. Deep Understanding of Time/Space Complexity
+
 - Comprehensive analysis of all three sum methods
 - Clear explanations of Big O notation
 - Mathematical proofs where applicable
 - Understanding of trade-offs between approaches
 
 ### 2. Strong React Fundamentals
+
 - Correct understanding of referential vs. deep equality
 - Proper use of `useMemo` and `useEffect` dependencies
 - Knowledge of when and why to memoize
 - Understanding of React's reconciliation algorithm
 
 ### 3. Production-Ready Code
+
 - Clean, well-organized codebase
 - Comprehensive error handling
 - Input validation
@@ -378,6 +412,7 @@ cd ../problem3
 - Type safety with TypeScript
 
 ### 4. Attention to Detail
+
 - Responsive design down to 320px
 - Loading states and user feedback
 - Proper error messages
@@ -399,6 +434,7 @@ This solution addresses the specific feedback from the company's evaluation:
 ## Author
 
 **Linh Pham**
+
 - GitHub: [@cacadic](https://github.com/cacadic)
 - Email: djhitstudio@gmail.com
 
