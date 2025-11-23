@@ -94,51 +94,117 @@ node sum_to_n.js
 ## Problem 2: Currency Swap Form
 
 ### Overview
-A fully functional, responsive currency swap interface built with React, TypeScript, and Vite. Features real-time exchange rate calculation, input validation, and a polished UI that works seamlessly on devices as small as 320px.
+A fully functional, responsive currency swap interface built with React, TypeScript, Vite, and Tailwind CSS v4. Features real-time exchange rate calculation, comprehensive settings management, coin icons from GitHub, input validation, and a polished UI that works seamlessly on devices as small as 320px. The project structure matches the reference solution exactly with proper separation of concerns.
 
 ### Key Features
+
+✅ **Settings Management**
+- Decimal places selector (2, 4, 6, 8, 10 options)
+- Theme toggle (Dark/Light mode)
+- USD comparison toggle
+- Settings persist to localStorage
+- Modal interface with intuitive controls
+
+✅ **Coin Icons**
+- Fetches coin icons from GitHub's Switcheo token-icons repository
+- Handles special cases for staked tokens (stETH, stATOM, etc.)
+- Displays icons in coin selector buttons and dropdown list
+- Professional visual presentation
 
 ✅ **Real-time Exchange Rate Calculation**
 - Fetches live cryptocurrency prices from Switcheo API
 - Automatic conversion rate display
 - Instant calculation as user types
+- Configurable decimal places for display
 
 ✅ **Comprehensive Input Validation**
 - Amount must be positive and greater than 0
+- Balance validation to prevent overdraft
 - Cannot swap to the same currency
-- Clear error messages for all validation failures
-- Form submission only enabled when valid
+- Clear error messages via toast notifications
+- Transfer button disabled when invalid
 
 ✅ **Responsive Design**
 - Fully responsive from 320px to desktop
 - Mobile-first approach
 - Smooth animations and transitions
-- Professional gradient background
+- Dark theme with professional styling
 
 ✅ **User Experience**
 - Swap button to quickly reverse currencies
-- Loading state during submission
-- Success message after swap
+- Coin dropdown with search functionality
+- Loading state during data fetch
+- Toast notification system (Sonner-inspired)
+- OTP confirmation modal for transfers
 - Clean, intuitive interface
 
 ✅ **Performance Optimizations**
-- `useMemo` for exchange rate calculations
+- Custom hooks for separation of concerns
+- Memoized calculations for performance
 - Efficient state management
 - Optimized re-renders
+
+### Project Structure
+
+```
+src/problem2/
+├── public/
+│   ├── setting.svg
+│   ├── sync.svg
+│   ├── error.svg
+│   ├── success.svg
+│   └── info.svg
+├── src/
+│   ├── api/
+│   │   └── coinService.ts          # API service for fetching coins and prices
+│   ├── components/
+│   │   ├── Header.tsx              # Header with settings button
+│   │   ├── SettingsModal.tsx       # Settings modal component
+│   │   ├── CoinInput.tsx           # Input field for pay/receive section
+│   │   ├── CoinDropdown.tsx        # Coin selection dropdown with search
+│   │   ├── SwapButton.tsx          # Swap button with cooldown
+│   │   ├── TransferButton.tsx      # Transfer button with disabled state
+│   │   ├── LoadingScreen.tsx       # Loading spinner component
+│   │   ├── Toast.tsx               # Single toast notification
+│   │   ├── ToastStack.tsx          # Stack-based toast system
+│   │   ├── TransferModal.tsx       # OTP confirmation modal
+│   │   ├── GlobalStyles.tsx        # Global CSS styles
+│   │   └── index.ts                # Barrel export
+│   ├── hooks/
+│   │   ├── useSettings.ts          # Settings management hook
+│   │   ├── useCoinSwap.ts          # Coin swap logic hook
+│   │   ├── useCoinDropdown.ts      # Dropdown management hook
+│   │   ├── useBalanceValidation.ts # Balance validation hook
+│   │   └── index.ts                # Barrel export
+│   ├── utils/
+│   │   ├── formatting.ts           # Amount formatting utilities
+│   │   ├── toast.ts                # Toast notification utility
+│   │   └── index.ts                # Barrel export
+│   ├── data/
+│   │   └── balances.json           # Mock balance data
+│   ├── App.tsx                     # Main application component
+│   ├── index.css                   # Global styles with Tailwind
+│   └── main.tsx                    # Application entry point
+├── package.json
+└── vite.config.ts                  # Vite config with Tailwind plugin
+```
 
 ### Technical Implementation
 
 **Stack:**
 - React 19 with TypeScript
 - Vite for build tooling
-- CSS3 for styling
+- Tailwind CSS v4 with @tailwindcss/vite plugin
 - Switcheo API for price data
+- GitHub Switcheo token-icons for coin icons
 
 **Architecture:**
-- Functional components with hooks
-- Custom validation logic
-- Memoized calculations for performance
-- Clean separation of concerns
+- Custom hooks for separation of concerns (useSettings, useCoinSwap, useCoinDropdown, useBalanceValidation)
+- Reusable component library
+- API service layer for data fetching
+- Utility functions for formatting and notifications
+- localStorage for settings persistence
+- Clean separation of concerns matching reference solution
 
 ### Running Problem 2
 
